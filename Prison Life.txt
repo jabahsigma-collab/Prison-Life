@@ -689,22 +689,22 @@ if checkWall(targetHead, player.Character) then​
 local screenPos, onScreen =
 Camera:WorldToViewportPoint(targetHead.Position)​
 if onScreen then​
-local distToFOVOrigin = (Vector2.new(screenPos.X, screenPos.Y) fovCenter).Magnitude​
-​
-if Aim360Enabled or not FOVEnabled or distToFOVOrigin <= FOVRadius then​
-local distance = (Camera.CFrame.Position targetHead.Position).Magnitude​
-if distance < shortestDistance then​
-shortestDistance = distance​
-closestEnemy = player​
-end​
-end​
-end​
-end​
-end​
-end​
-end​
-end​
-return closestEnemy​
+local distToFOVOrigin = (Vector2.new(screenPos.X, screenPos.Y) - fovCenter).Magnitude
+
+if Aim360Enabled or not FOVEnabled or distToFOVOrigin <= FOVRadius then
+    local distance = (Camera.CFrame.Position - targetHead.Position).Magnitude
+    if distance < shortestDistance then
+        shortestDistance = distance
+        closestEnemy = player
+    end
+end
+end
+end
+end
+end
+end
+end
+return closestEnemy
 end​
 ​
 -- MAIN RENDERSTEPPED LOOP​
