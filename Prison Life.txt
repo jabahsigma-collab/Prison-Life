@@ -750,9 +750,10 @@ local hitPart, hitPosition =
 workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)​
 if hitPart then​
 
-if hitPart:IsDescendantOf(enemyCharacter) then return true end​
-if (origin - hitPosition).Magnitude < (origin targetPart.Position).Magnitude - 2 then return false end​
-end​
+if hitPart:IsDescendantOf(enemyCharacter) then return true end
+if (origin - hitPosition).Magnitude < (origin - targetPart.Position).Magnitude - 2 then return false end
+end
+​
 return true​
 end​
 ​
