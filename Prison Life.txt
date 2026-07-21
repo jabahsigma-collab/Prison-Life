@@ -547,7 +547,6 @@ local distance = (Camera.CFrame.Position - enemyRoot.Position).Magnitude
 if distance < shortestDistance then
     shortestDistance = distance
     closestEnemy = player
-end
 end​
 end​
 end​
