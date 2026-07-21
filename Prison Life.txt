@@ -689,24 +689,37 @@ if checkWall(targetHead, player.Character) then​
 local screenPos, onScreen =
 Camera:WorldToViewportPoint(targetHead.Position)​
 if onScreen then​
-local distToFOVOrigin = (Vector2.new(screenPos.X, screenPos.Y) - fovCenter).Magnitude
+local function getClosestEnemy()
+    local shortestDistance = math.huge
+    local closestEnemy = nil
+    local viewportSize = Camera.ViewportSize
+    local fovCenter = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
 
-if Aim360Enabled or not FOVEnabled or distToFOVOrigin <= FOVRadius then
-    local distance = (Camera.CFrame.Position - targetHead.Position).Magnitude
-    if distance < shortestDistance then
-        shortestDistance = distance
-        closestEnemy = player
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local targetHead = player.Character:FindFirstChild("Head")
+            local targetHumanoid = player.Character:FindFirstChildOfClass("Humanoid")
+
+            if targetHead and targetHumanoid and targetHumanoid.Health > 0 then
+                local screenPos, onScreen = Camera:WorldToViewportPoint(targetHead.Position)
+
+                if onScreen then
+                    local distToFOVOrigin = (Vector2.new(screenPos.X, screenPos.Y) - fovCenter).Magnitude
+
+                    if Aim360Enabled or not FOVEnabled or distToFOVOrigin <= FOVRadius then
+                        local distance = (Camera.CFrame.Position - targetHead.Position).Magnitude
+                        if distance < shortestDistance then
+                            shortestDistance = distance
+                            closestEnemy = player
+                        end
+                    end
+                end
+            end
+        end
     end
+
+    return closestEnemy
 end
-end
-end
-end
-end
-end
-end
-return closestEnemy
-end​
-​
 -- MAIN RENDERSTEPPED LOOP​
 RunService.RenderStepped:Connect(function(dt)​
 updateGUIHealthBars()​
