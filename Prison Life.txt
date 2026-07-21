@@ -747,7 +747,6 @@ table.insert(ignoreList, p.Character)​
 end​
 end​
 local hitPart, hitPosition = workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)
-
 if hitPart then
     if hitPart:IsDescendantOf(enemyCharacter) then 
         return true 
@@ -757,7 +756,6 @@ if hitPart then
     end
 end
 
-​
 return true​
 end​
 ​
