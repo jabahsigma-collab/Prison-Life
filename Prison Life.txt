@@ -814,7 +814,6 @@ local function getWeaponData()
 
     local muzzlePart = weapon:FindFirstChild("Muzzle") or weapon:FindFirstChild("Handle") or char:FindFirstChild("RightHand")
     return weapon.Name, 30, muzzlePart
-    return weapon.Name, 30, muzzlePart
 end
 
 local function createTracer(startPos, endPos)
