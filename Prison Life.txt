@@ -805,16 +805,42 @@ end​
 end)​
 ​
 -- WEAPON DATA & SILENT AIM LOGIC​
-local function getWeaponData()
-    local char = LocalPlayer.Character
-    if not char then return nil end
+task.spawn(function()
+    while true do
+        task.wait()
 
-    local weapon = char:FindFirstChildOfClass("Tool")
-    if not weapon then return nil end
+        if not AimingEnabled or IsReloading then continue end
 
-    local muzzlePart = weapon:FindFirstChild("Muzzle") or weapon:FindFirstChild("Handle") or char:FindFirstChild("RightHand")
-    return weapon.Name, 30, muzzlePart
-end
+        local weaponName, maxAmmo, muzzlePart = getWeaponData()
+        if not weaponName or not muzzlePart then continue end
+
+        if os.clock() - LastShotTime < SilentAimCooldown then continue end
+
+        local target = getClosestVisibleEnemy()
+        if target and target.Character and target.Character:FindFirstChild("Head") and target.Character:FindFirstChild("HumanoidRootPart") then
+            local targetPart = target.Character.Head
+            local targetRoot = target.Character.HumanoidRootPart
+            local originPos = muzzlePart.Position
+            local predictedTargetPos = targetPart.Position + (targetRoot.Velocity * 0.05)
+
+            LastShotTime = os.clock()
+            ShootEvent:FireServer({{originPos, predictedTargetPos, targetPart}})
+            createTracer(originPos, predictedTargetPos)
+            CurrentShotsFired = CurrentShotsFired + 1
+
+            if CurrentShotsFired >= maxAmmo then
+                IsReloading = true
+                CurrentShotsFired = 0
+                pcall(function() 
+                    ReloadRemote:InvokeServer() 
+                end)
+                task.wait(1.5)
+                IsReloading = false
+            end
+        end
+    end
+end)
+
 
 local function createTracer(startPos, endPos)
     local direction = (endPos - startPos).Unit
