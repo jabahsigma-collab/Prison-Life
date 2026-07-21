@@ -682,13 +682,6 @@ if player ~= LocalPlayer and player.Character and player.Character:FindFirstChil
 and player.Character:FindFirstChild("Humanoid") then​
 if player.Character.Humanoid.Health > 0 then​
 if player.Team ~= LocalPlayer.Team or player.Team == nil then​
-local targetHead = player.Character.Head​
-​
--- Check visibility first​
-if checkWall(targetHead, player.Character) then​
-local screenPos, onScreen =
-Camera:WorldToViewportPoint(targetHead.Position)​
-if onScreen then​
 local function getClosestEnemy()
     local shortestDistance = math.huge
     local closestEnemy = nil
@@ -720,127 +713,17 @@ local function getClosestEnemy()
 
     return closestEnemy
 end
--- MAIN RENDERSTEPPED LOOP​
-RunService.RenderStepped:Connect(function(dt)​
-updateGUIHealthBars()​
-​
--- FOV Position Update (Center or Mouse)​
-if FOVEnabled then​
-FOVCircle.Visible = true​
 
-if FOVMode == "Mouse" then​
-FOVCircle.Position = UserInputService:GetMouseLocation()​
-else​
-FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y /
-2)​
-end​
-else​
-FOVCircle.Visible = false​
-end​
-​
--- Spin Logic​
-local char = LocalPlayer.Character​
-local hrp = char and char:FindFirstChild("HumanoidRootPart")​
-if SpinEnabled and hrp then​
-hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(SpinSpeed), 0)​
-end​
-​
--- FOV Changer Logic​
-if CustomFOVEnabled then​
-Camera.FieldOfView = TargetFOV​
-end​
-​
--- TPWalk Logic​
-if TPWalkEnabled and char and hrp then​
-local humanoid = char:FindFirstChildOfClass("Humanoid")​
-if humanoid and humanoid.MoveDirection.Magnitude > 0 then​
-hrp.CFrame = hrp.CFrame + (humanoid.MoveDirection * (TPWalkSpeed * dt))​
-end​
-end​
-​
--- Tracer to Closest Visible Target​
-if TracerClosestEnabled then​
-local target = getClosestVisibleEnemy()​
-if target and target.Character and target.Character:FindFirstChild("Head") and hrp then​
-local targetHead = target.Character.Head​
-local startPos = hrp.Position​
-local endPos = targetHead.Position​
-local distance = (startPos - endPos).Magnitude​
-tracerLine.Size = Vector3.new(0.08, 0.08, distance)​
-tracerLine.CFrame = CFrame.new(startPos, endPos) * CFrame.new(0, 0, -distance / 2)​
-tracerLine.Transparency = 0.2​
-else​
-tracerLine.Transparency = 1​
-end​
-else​
-tracerLine.Transparency = 1​
-end​
-end)​
+local function getWeaponData()
+    local char = LocalPlayer.Character
+    if not char then return nil end
 
-​
--- HIGHLIGHT LOGIC​
-task.spawn(function()​
-while true do​
-task.wait(0.5)​
-for _, player in ipairs(Players:GetPlayers()) do​
-if player.Character then​
-local highlight = player.Character:FindFirstChild("PlayerHighlight")​
-if HighlightEnabled then​
-if not highlight then​
-highlight = Instance.new("Highlight")​
-highlight.Name = "PlayerHighlight"​
-highlight.Parent = player.Character​
-end​
-local teamColor = player.TeamColor.Color​
-highlight.FillColor = teamColor​
-highlight.OutlineColor = teamColor​
-highlight.FillTransparency = 0.5​
-highlight.OutlineTransparency = 0​
-else​
-if highlight then highlight:Destroy() end​
-end​
-end​
-end​
-end​
-end)​
-​
--- WEAPON DATA & SILENT AIM LOGIC​
-task.spawn(function()
-    while true do
-        task.wait()
+    local weapon = char:FindFirstChildOfClass("Tool")
+    if not weapon then return nil end
 
-        if not AimingEnabled or IsReloading then continue end
-
-        local weaponName, maxAmmo, muzzlePart = getWeaponData()
-        if not weaponName or not muzzlePart then continue end
-
-        if os.clock() - LastShotTime < SilentAimCooldown then continue end
-
-        local target = getClosestVisibleEnemy()
-        if target and target.Character and target.Character:FindFirstChild("Head") and target.Character:FindFirstChild("HumanoidRootPart") then
-            local targetPart = target.Character.Head
-            local targetRoot = target.Character.HumanoidRootPart
-            local originPos = muzzlePart.Position
-            local predictedTargetPos = targetPart.Position + (targetRoot.Velocity * 0.05)
-
-            LastShotTime = os.clock()
-            ShootEvent:FireServer({{originPos, predictedTargetPos, targetPart}})
-            createTracer(originPos, predictedTargetPos)
-            CurrentShotsFired = CurrentShotsFired + 1
-
-            if CurrentShotsFired >= maxAmmo then
-                IsReloading = true
-                CurrentShotsFired = 0
-                pcall(function() 
-                    ReloadRemote:InvokeServer() 
-                end)
-                task.wait(1.5)
-                IsReloading = false
-            end
-        end
-    end
-end)
-
+    local muzzlePart = weapon:FindFirstChild("Muzzle") or weapon:FindFirstChild("Handle") or char:FindFirstChild("RightHand")
+    return weapon.Name, 30, muzzlePart
+end
 
 local function createTracer(startPos, endPos)
     local direction = (endPos - startPos).Unit
@@ -867,8 +750,90 @@ local function createTracer(startPos, endPos)
 
     Debris:AddItem(tracer, 0.5)
 end
-end
 
+-- MAIN RENDERSTEPPED LOOP
+RunService.RenderStepped:Connect(function(dt)
+    updateGUIHealthBars()
+
+    -- FOV Position Update (Center or Mouse)
+    if FOVEnabled then
+        FOVCircle.Visible = true
+
+        if FOVMode == "Mouse" then
+            FOVCircle.Position = UserInputService:GetMouseLocation()
+        else
+            FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+        end
+    else
+        FOVCircle.Visible = false
+    end
+
+    -- Spin Logic
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if SpinEnabled and hrp then
+        hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(SpinSpeed), 0)
+    end
+
+    -- FOV Changer Logic
+    if CustomFOVEnabled then
+        Camera.FieldOfView = TargetFOV
+    end
+
+    -- TPWalk Logic
+    if TPWalkEnabled and char and hrp then
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if humanoid and humanoid.MoveDirection.Magnitude > 0 then
+            hrp.CFrame = hrp.CFrame + (humanoid.MoveDirection * (TPWalkSpeed * dt))
+        end
+    end
+
+    -- Tracer to Closest Visible Target
+    if TracerClosestEnabled then
+        local target = getClosestEnemy()
+        if target and target.Character and target.Character:FindFirstChild("Head") and hrp then
+            local targetHead = target.Character.Head
+            local startPos = hrp.Position
+            local endPos = targetHead.Position
+            local distance = (startPos - endPos).Magnitude
+            tracerLine.Size = Vector3.new(0.08, 0.08, distance)
+            tracerLine.CFrame = CFrame.new(startPos, endPos) * CFrame.new(0, 0, -distance / 2)
+            tracerLine.Transparency = 0.2
+        else
+            tracerLine.Transparency = 1
+        end
+    else
+        tracerLine.Transparency = 1
+    end
+end)
+
+-- HIGHLIGHT LOGIC
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player.Character then
+                local highlight = player.Character:FindFirstChild("PlayerHighlight")
+                if HighlightEnabled then
+                    if not highlight then
+                        highlight = Instance.new("Highlight")
+                        highlight.Name = "PlayerHighlight"
+                        highlight.Parent = player.Character
+                    end
+                    local teamColor = player.TeamColor.Color
+                    highlight.FillColor = teamColor
+                    highlight.OutlineColor = teamColor
+                    highlight.FillTransparency = 0.5
+                    highlight.OutlineTransparency = 0
+                else
+                    if highlight then highlight:Destroy() end
+                end
+            end
+        end
+    end
+end)
+
+-- WEAPON DATA & SILENT AIM LOGIC
 task.spawn(function()
     while true do
         task.wait()
@@ -880,7 +845,7 @@ task.spawn(function()
 
         if os.clock() - LastShotTime < SilentAimCooldown then continue end
 
-        local target = getClosestVisibleEnemy()
+        local target = getClosestEnemy()
         if target and target.Character and target.Character:FindFirstChild("Head") and target.Character:FindFirstChild("HumanoidRootPart") then
             local targetPart = target.Character.Head
             local targetRoot = target.Character.HumanoidRootPart
@@ -904,3 +869,4 @@ task.spawn(function()
         end
     end
 end)
+end​
