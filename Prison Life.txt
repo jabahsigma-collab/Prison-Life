@@ -680,8 +680,9 @@ Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)​
 for _, player in ipairs(Players:GetPlayers()) do​
 if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head")
 and player.Character:FindFirstChild("Humanoid") then​
-if player.Character.Humanoid.Health > 0 then​
-if player.Team ~= LocalPlayer.Team or player.Team == nil then​
+-- Убедись, что все нужные сервисы и переменные (Players, Camera, LocalPlayer, TweenService и т.д.) 
+-- объявлены выше этого кода!
+
 local function getClosestEnemy()
     local shortestDistance = math.huge
     local closestEnemy = nil
@@ -690,20 +691,24 @@ local function getClosestEnemy()
 
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
-            local targetHead = player.Character:FindFirstChild("Head")
-            local targetHumanoid = player.Character:FindFirstChildOfClass("Humanoid")
+            -- Проверка на команду (Team check)
+            if player.Team ~= LocalPlayer.Team or player.Team == nil then
+                local targetHead = player.Character:FindFirstChild("Head")
+                local targetHumanoid = player.Character:FindFirstChildOfClass("Humanoid")
 
-            if targetHead and targetHumanoid and targetHumanoid.Health > 0 then
-                local screenPos, onScreen = Camera:WorldToViewportPoint(targetHead.Position)
+                -- Проверка на существование и здоровье
+                if targetHead and targetHumanoid and targetHumanoid.Health > 0 then
+                    local screenPos, onScreen = Camera:WorldToViewportPoint(targetHead.Position)
 
-                if onScreen then
-                    local distToFOVOrigin = (Vector2.new(screenPos.X, screenPos.Y) - fovCenter).Magnitude
+                    if onScreen then
+                        local distToFOVOrigin = (Vector2.new(screenPos.X, screenPos.Y) - fovCenter).Magnitude
 
-                    if Aim360Enabled or not FOVEnabled or distToFOVOrigin <= FOVRadius then
-                        local distance = (Camera.CFrame.Position - targetHead.Position).Magnitude
-                        if distance < shortestDistance then
-                            shortestDistance = distance
-                            closestEnemy = player
+                        if Aim360Enabled or not FOVEnabled or distToFOVOrigin <= FOVRadius then
+                            local distance = (Camera.CFrame.Position - targetHead.Position).Magnitude
+                            if distance < shortestDistance then
+                                shortestDistance = distance
+                                closestEnemy = player
+                            end
                         end
                     end
                 end
@@ -753,10 +758,12 @@ end
 
 -- MAIN RENDERSTEPPED LOOP
 RunService.RenderStepped:Connect(function(dt)
-    updateGUIHealthBars()
+    if updateGUIHealthBars then
+        updateGUIHealthBars()
+    end
 
     -- FOV Position Update (Center or Mouse)
-    if FOVEnabled then
+    if FOVEnabled and FOVCircle then
         FOVCircle.Visible = true
 
         if FOVMode == "Mouse" then
@@ -764,7 +771,7 @@ RunService.RenderStepped:Connect(function(dt)
         else
             FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
         end
-    else
+    elseif FOVCircle then
         FOVCircle.Visible = false
     end
 
@@ -789,7 +796,7 @@ RunService.RenderStepped:Connect(function(dt)
     end
 
     -- Tracer to Closest Visible Target
-    if TracerClosestEnabled then
+    if TracerClosestEnabled and tracerLine then
         local target = getClosestEnemy()
         if target and target.Character and target.Character:FindFirstChild("Head") and hrp then
             local targetHead = target.Character.Head
@@ -802,7 +809,7 @@ RunService.RenderStepped:Connect(function(dt)
         else
             tracerLine.Transparency = 1
         end
-    else
+    elseif tracerLine then
         tracerLine.Transparency = 1
     end
 end)
@@ -820,7 +827,7 @@ task.spawn(function()
                         highlight.Name = "PlayerHighlight"
                         highlight.Parent = player.Character
                     end
-                    local teamColor = player.TeamColor.Color
+                    local teamColor = player.TeamColor and player.TeamColor.Color or Color3.new(1, 1, 1)
                     highlight.FillColor = teamColor
                     highlight.OutlineColor = teamColor
                     highlight.FillTransparency = 0.5
@@ -840,28 +847,34 @@ task.spawn(function()
 
         if not AimingEnabled or IsReloading then continue end
 
-        local weaponName, maxAmmo, muzzlePart = getWeaponData()
+        local weaponData = {getWeaponData()}
+        local weaponName, maxAmmo, muzzlePart = weaponData[1], weaponData[2], weaponData[3]
+        
         if not weaponName or not muzzlePart then continue end
 
-        if os.clock() - LastShotTime < SilentAimCooldown then continue end
+        if os.clock() - (LastShotTime or 0) < (SilentAimCooldown or 0.1) then continue end
 
         local target = getClosestEnemy()
         if target and target.Character and target.Character:FindFirstChild("Head") and target.Character:FindFirstChild("HumanoidRootPart") then
             local targetPart = target.Character.Head
             local targetRoot = target.Character.HumanoidRootPart
             local originPos = muzzlePart.Position
+            -- Небольшое упреждение по скорости (Prediction)
             local predictedTargetPos = targetPart.Position + (targetRoot.Velocity * 0.05)
 
             LastShotTime = os.clock()
-            ShootEvent:FireServer({{originPos, predictedTargetPos, targetPart}})
+            if ShootEvent then
+                ShootEvent:FireServer({{originPos, predictedTargetPos, targetPart}})
+            end
+            
             createTracer(originPos, predictedTargetPos)
-            CurrentShotsFired = CurrentShotsFired + 1
+            CurrentShotsFired = (CurrentShotsFired or 0) + 1
 
             if CurrentShotsFired >= maxAmmo then
                 IsReloading = true
                 CurrentShotsFired = 0
                 pcall(function() 
-                    ReloadRemote:InvokeServer() 
+                    if ReloadRemote then ReloadRemote:InvokeServer() end
                 end)
                 task.wait(1.5)
                 IsReloading = false
@@ -869,4 +882,3 @@ task.spawn(function()
         end
     end
 end)
-end​
