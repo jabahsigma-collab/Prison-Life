@@ -543,10 +543,11 @@ Camera.ViewportSize.Y/2)).Magnitude​
 ​
 if Aim360Enabled or not FOVEnabled or distToMouse
 <= FOVRadius then​
-local distance = (Camera.CFrame.Position enemyRoot.Position).Magnitude​
-if distance < shortestDistance then​
-shortestDistance = distance​
-closestEnemy = player​
+local distance = (Camera.CFrame.Position - enemyRoot.Position).Magnitude
+if distance < shortestDistance then
+    shortestDistance = distance
+    closestEnemy = player
+end
 end​
 end​
 end​
