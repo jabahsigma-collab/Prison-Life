@@ -17,7 +17,7 @@ local AimingEnabled = false​
 local Aim360Enabled = false​
 local SilentAimCooldown = 0.1​
 local FOVEnabled = false​
-local FOVRadius = 80 -- Мин 1, Макс 200​
+local FOVRadius = 80 -- Мин 1, Макс 500
 ​
 -- НАСТРОЙКИ (ВИЗУАЛ)​
 local HighlightEnabled = false​
