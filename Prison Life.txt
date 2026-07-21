@@ -746,7 +746,6 @@ if p.Team == LocalPlayer.Team and p.Character then​
 table.insert(ignoreList, p.Character)​
 end​
 end​
-local hitPart, hitPosition =
 local hitPart, hitPosition = workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)
 
 if hitPart then
