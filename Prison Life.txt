@@ -747,12 +747,17 @@ table.insert(ignoreList, p.Character)​
 end​
 end​
 local hitPart, hitPosition =
-workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)​
-if hitPart then​
+local hitPart, hitPosition = workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)
 
-if hitPart:IsDescendantOf(enemyCharacter) then return true end
-if (origin - hitPosition).Magnitude < (origin - targetPart.Position).Magnitude - 2 then return false end
+if hitPart then
+    if hitPart:IsDescendantOf(enemyCharacter) then 
+        return true 
+    end
+    if (origin - hitPosition).Magnitude < (origin - targetPart.Position).Magnitude - 2 then 
+        return false 
+    end
 end
+
 ​
 return true​
 end​
