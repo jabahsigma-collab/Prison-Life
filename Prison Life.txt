@@ -837,34 +837,68 @@ Debris:AddItem(tracer, 0.5)​
 end​
 ​
 task.spawn(function()​
-while true do​
-task.wait()​
-if not AimingEnabled or IsReloading then continue end​
-local weaponName, maxAmmo, muzzlePart = getWeaponData()​
-if not weaponName or not muzzlePart then continue end​
-if os.clock() - LastShotTime < SilentAimCooldown then continue end​
-​
-local target = getClosestVisibleEnemy()​
-if target and target.Character and target.Character:FindFirstChild("Head") and
-target.Character:FindFirstChild("HumanoidRootPart") then​
-local targetPart = target.Character.Head​
-local targetRoot = target.Character.HumanoidRootPart​
-local originPos = muzzlePart.Position​
-local predictedTargetPos = targetPart.Position + (targetRoot.Velocity * 0.05)​
-​
-LastShotTime = os.clock()​
-ShootEvent:FireServer({{originPos, predictedTargetPos, targetPart}})​
-createTracer(originPos, predictedTargetPos)​
-CurrentShotsFired = CurrentShotsFired + 1​
-if CurrentShotsFired >= maxAmmo then​
-IsReloading = true​
-CurrentShotsFired = 0​
-pcall(function() ReloadRemote:InvokeServer() end)​
-task.wait(1.5)​
-IsReloading = false​
-end​
-end​
-end​
-end)​
+local muzzlePart = weapon:FindFirstChild("Muzzle") or weapon:FindFirstChild("Handle") or char:FindFirstChild("RightHand")
+return weapon.Name, 30, muzzlePart
+end
 
-
+local function createTracer(startPos, endPos)
+    local direction = (endPos - startPos).Unit
+    local adjustedStartPos = startPos + (direction * 2.5) 
+    local distance = (adjustedStartPos - endPos).Magnitude
+
+    if distance < 1 then return end
+
+    local tracer = Instance.new("Part")
+    tracer.Name = "BulletTracer"
+    tracer.Anchored = true
+    tracer.CanCollide = false
+    tracer.Color = Color3.fromRGB(0, 255, 255)
+    tracer.Material = Enum.Material.Neon
+    tracer.Transparency = 0.4
+    tracer.Size = Vector3.new(0.05, 0.05, distance)
+    tracer.CFrame = CFrame.new(adjustedStartPos, endPos) * CFrame.new(0, 0, -distance / 2)
+    tracer.Parent = workspace
+
+    TweenService:Create(tracer, TweenInfo.new(0.5), {
+        Transparency = 1, 
+        Size = Vector3.new(0, 0, distance)
+    }):Play()
+
+    Debris:AddItem(tracer, 0.5)
+end
+
+task.spawn(function()
+    while true do
+        task.wait()
+
+        if not AimingEnabled or IsReloading then continue end
+
+        local weaponName, maxAmmo, muzzlePart = getWeaponData()
+        if not weaponName or not muzzlePart then continue end
+
+        if os.clock() - LastShotTime < SilentAimCooldown then continue end
+
+        local target = getClosestVisibleEnemy()
+        if target and target.Character and target.Character:FindFirstChild("Head") and target.Character:FindFirstChild("HumanoidRootPart") then
+            local targetPart = target.Character.Head
+            local targetRoot = target.Character.HumanoidRootPart
+            local originPos = muzzlePart.Position
+            local predictedTargetPos = targetPart.Position + (targetRoot.Velocity * 0.05)
+
+            LastShotTime = os.clock()
+            ShootEvent:FireServer({{originPos, predictedTargetPos, targetPart}})
+            createTracer(originPos, predictedTargetPos)
+            CurrentShotsFired = CurrentShotsFired + 1
+
+            if CurrentShotsFired >= maxAmmo then
+                IsReloading = true
+                CurrentShotsFired = 0
+                pcall(function() 
+                    ReloadRemote:InvokeServer() 
+                end)
+                task.wait(1.5)
+                IsReloading = false
+            end
+        end
+    end
+end)
