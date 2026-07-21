@@ -853,16 +853,15 @@ ShootEvent:FireServer({{originPos, predictedTargetPos,
 targetPart}})​
 createTracer(originPos, predictedTargetPos)​
 CurrentShotsFired = CurrentShotsFired + 1​
-if CurrentShotsFired >= maxAmmo then​
-IsReloading = true​
-CurrentShotsFired = 0​
-pcall(function() ReloadRemote:InvokeServer() end)​
-task.wait(1.5)​
-IsReloading = false​
-end​
-end​
-end​
-end​
-end)​
+if CurrentShotsFired >= maxAmmo then
+    IsReloading = true
+    CurrentShotsFired = 0
+    pcall(function() 
+        ReloadRemote:InvokeServer() 
+    end)
+    task.wait(1.5)
+    IsReloading = false
+end
+​
 
 
