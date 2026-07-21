@@ -379,12 +379,12 @@ FillCorner.Parent = Fill​
 
 local draggingSlider = false​
 local function update(input)​
-local pos = math.clamp((input.Position.X SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)​
-local val = math.floor(min + (max - min) * pos * 100) / 100​
-Fill.Size = UDim2.new(pos, 0, 1, 0)​
-Label.Text = name .. ": " .. val​
-callback(val)​
-end​
+local pos = math.clamp((input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
+local val = math.floor((min + (max - min) * pos) * 100) / 100
+Fill.Size = UDim2.new(pos, 0, 1, 0)
+Label.Text = name .. ": " .. val
+callback(val)
+end
 ​
 SliderBar.InputBegan:Connect(function(input)​
 if input.UserInputType == Enum.UserInputType.MouseButton1 or
