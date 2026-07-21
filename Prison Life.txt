@@ -867,6 +867,7 @@ local function createTracer(startPos, endPos)
 
     Debris:AddItem(tracer, 0.5)
 end
+end
 
 task.spawn(function()
     while true do
