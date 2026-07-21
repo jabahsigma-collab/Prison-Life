@@ -670,16 +670,65 @@ tracerLine.Parent = workspace​
 
 ​
 -- AIM TARGET SEARCH (VISIBLE & CLOSEST ENEMY)​
-local function getClosestVisibleEnemy()​
-local closestEnemy = nil​
-local shortestDistance = math.huge​
-​
-local fovCenter = (FOVMode == "Mouse") and UserInputService:GetMouseLocation() or
-Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)​
-​
-for _, player in ipairs(Players:GetPlayers()) do​
-if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head")
-and player.Character:FindFirstChild("Humanoid") then​
+local function getClosestVisibleEnemy()
+    local closestEnemy = nil
+    local shortestDistance = math.huge
+
+    local fovCenter = (FOVMode == "Mouse") and UserInputService:GetMouseLocation() or Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+
+    -- Настройка Raycast для проверки стен (игнорируем своего персонажа и камеру)
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+    if LocalPlayer.Character then
+        raycastParams.FilterDescendantsInstances = {LocalPlayer.Character, Camera}
+    end
+    raycastParams.IgnoreWater = true
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") and player.Character:FindFirstChild("Humanoid") then
+            -- 1. Проверка на команду
+            if player.Team ~= LocalPlayer.Team or player.Team == nil then
+                local targetHead = player.Character.Head
+                local targetHumanoid = player.Character.Humanoid
+
+                -- 2. Проверка здоровья
+                if targetHumanoid.Health > 0 then
+                    local screenPos, onScreen = Camera:WorldToViewportPoint(targetHead.Position)
+
+                    -- 3. Проверка нахождение на экране
+                    if onScreen then
+                        local distToFOVOrigin = (Vector2.new(screenPos.X, screenPos.Y) - fovCenter).Magnitude
+
+                        -- 4. Проверка радиуса FOV / Aim360
+                        if Aim360Enabled or not FOVEnabled or distToFOVOrigin <= FOVRadius then
+                            
+                            -- 5. Проверка видимости за стенами (Wall Check)
+                            local rayOrigin = Camera.CFrame.Position
+                            local rayDirection = targetHead.Position - rayOrigin
+                            local rayResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+
+                            -- Игрок виден, если луч ни во что не врезался или врезался в хитбокс самого врага
+                            local isVisible = not rayResult or rayResult.Instance:IsDescendantOf(player.Character)
+
+                            -- Выбираем самого близкого из видимых
+                            if isVisible then
+                                local distance = (Camera.CFrame.Position - targetHead.Position).Magnitude
+
+                                if distance < shortestDistance then
+                                    shortestDistance = distance
+                                    closestEnemy = player
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return closestEnemy
+end
+
 -- Убедись, что все нужные сервисы и переменные (Players, Camera, LocalPlayer, TweenService и т.д.) 
 -- объявлены выше этого кода!
 
