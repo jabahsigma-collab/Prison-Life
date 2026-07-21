@@ -799,69 +799,71 @@ tracer.Parent = workspace​
 TweenService:Create(tracer, TweenInfo.new(0.5), {Transparency = 1,
 Size = Vector3.new(0, 0, distance)}):Play()​
 Debris:AddItem(tracer, 0.5)​
-end​
-​
-local function checkWall(targetPart, enemyCharacter)​
-local hrp = LocalPlayer.Character and
-LocalPlayer.Character:FindFirstChild("HumanoidRootPart")​
-if not hrp then return false end​
-local origin = hrp.Position​
-local direction = (targetPart.Position - origin).Unit * 500​
-local ray = Ray.new(origin, direction)​
-local ignoreList = {LocalPlayer.Character, Camera}​
-for _, p in ipairs(Players:GetPlayers()) do​
-if p.Team == LocalPlayer.Team and p.Character then​
-table.insert(ignoreList, p.Character)​
-end​
-end​
-local hitPart, hitPosition =
-workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)​
-if hitPart then​
-if hitPart:IsDescendantOf(enemyCharacter) then ​
-return true ​
-end​
-if (origin - hitPosition).Magnitude < (origin - targetPart.Position).Magnitude - 2 then 
-    return false 
+end​​
+local function checkWall(targetPart, enemyCharacter)
+    local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return false end
+
+    local origin = hrp.Position
+    local direction = (targetPart.Position - origin).Unit * 500
+    local ray = Ray.new(origin, direction)
+    local ignoreList = {LocalPlayer.Character, Camera}
+
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p.Team == LocalPlayer.Team and p.Character then
+            table.insert(ignoreList, p.Character)
+        end
+    end
+
+    local hitPart, hitPosition = workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)
+
+    if hitPart then
+        if hitPart:IsDescendantOf(enemyCharacter) then 
+            return true 
+        end
+        if (origin - hitPosition).Magnitude < (origin - targetPart.Position).Magnitude - 2 then 
+            return false 
+        end
+        return true
+    end
+
+    return false
 end
 
-return true​
-end​
-​
-task.spawn(function()​
-while true do​
-task.wait()​
-if not AimingEnabled or IsReloading then continue end​
-local weaponName, maxAmmo, muzzlePart = getWeaponData()​
+task.spawn(function()
+    while true do
+        task.wait()
 
-if not weaponName or not muzzlePart then continue end​
-if os.clock() - LastShotTime < SilentAimCooldown then continue
-end​
-​
-local target = getClosestEnemy()​
-if target and target.Character and
-target.Character:FindFirstChild("Head") and
-target.Character:FindFirstChild("HumanoidRootPart") then​
-local targetPart = target.Character.Head​
-local targetRoot = target.Character.HumanoidRootPart​
-local originPos = muzzlePart.Position​
-local predictedTargetPos = targetPart.Position +
-(targetRoot.Velocity * 0.05)​
-​
-if checkWall(targetPart, target.Character) then​
-LastShotTime = os.clock()​
-ShootEvent:FireServer({{originPos, predictedTargetPos,
-targetPart}})​
-createTracer(originPos, predictedTargetPos)​
-CurrentShotsFired = CurrentShotsFired + 1​
-if CurrentShotsFired >= maxAmmo then
-    IsReloading = true
-    CurrentShotsFired = 0
-    pcall(function() 
-        ReloadRemote:InvokeServer() 
-    end)
-    task.wait(1.5)
-    IsReloading = false
-end
-​
+        if not AimingEnabled or IsReloading then continue end
 
-
+        local weaponName, maxAmmo, muzzlePart = getWeaponData()
+        if not weaponName or not muzzlePart then continue end
+
+        if os.clock() - LastShotTime < SilentAimCooldown then continue end
+
+        local target = getClosestEnemy()
+        if target and target.Character and target.Character:FindFirstChild("Head") and target.Character:FindFirstChild("HumanoidRootPart") then
+            local targetPart = target.Character.Head
+            local targetRoot = target.Character.HumanoidRootPart
+            local originPos = muzzlePart.Position
+            local predictedTargetPos = targetPart.Position + (targetRoot.Velocity * 0.05)
+
+            if checkWall(targetPart, target.Character) then
+                LastShotTime = os.clock()
+                ShootEvent:FireServer({{originPos, predictedTargetPos, targetPart}})
+                createTracer(originPos, predictedTargetPos)
+                CurrentShotsFired = CurrentShotsFired + 1
+
+                if CurrentShotsFired >= maxAmmo then
+                    IsReloading = true
+                    CurrentShotsFired = 0
+                    pcall(function() 
+                        ReloadRemote:InvokeServer() 
+                    end)
+                    task.wait(1.5)
+                    IsReloading = false
+                end
+            end
+        end
+    end
+end)
